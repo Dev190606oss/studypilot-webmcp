@@ -5,13 +5,17 @@
   const today = () => new Date().toISOString().slice(0, 10);
   const escapeHtml = (value) => String(value).replace(/[&<>'"]/g, (char) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', "'":'&#39;', '"':'&quot;' }[char]));
 
+  const generateId = () => (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function')
+    ? crypto.randomUUID()
+    : 'task-' + Date.now() + '-' + Math.random().toString(36).slice(2, 9);
+
   function sampleTasks() {
     const date = today();
     return [
-      { id: crypto.randomUUID(), title: 'Review organic chemistry notes', subject: 'Chemistry', date, priority: 'High', estimatedMinutes: 45, completed: false },
-      { id: crypto.randomUUID(), title: 'Finish problem set 4', subject: 'Calculus', date, priority: 'High', estimatedMinutes: 60, completed: false },
-      { id: crypto.randomUUID(), title: 'Read research article', subject: 'Psychology', date, priority: 'Medium', estimatedMinutes: 30, completed: false },
-      { id: crypto.randomUUID(), title: 'Organize lecture slides', subject: 'History', date, priority: 'Low', estimatedMinutes: 20, completed: true }
+      { id: generateId(), title: 'Review organic chemistry notes', subject: 'Chemistry', date, priority: 'High', estimatedMinutes: 45, completed: false },
+      { id: generateId(), title: 'Finish problem set 4', subject: 'Calculus', date, priority: 'High', estimatedMinutes: 60, completed: false },
+      { id: generateId(), title: 'Read research article', subject: 'Psychology', date, priority: 'Medium', estimatedMinutes: 30, completed: false },
+      { id: generateId(), title: 'Organize lecture slides', subject: 'History', date, priority: 'Low', estimatedMinutes: 20, completed: true }
     ];
   }
   function loadTasks() {
@@ -25,7 +29,7 @@
     const date = String(input.date || '').trim(), priority = String(input.priority || 'Medium');
     const estimatedMinutes = Number(input.estimatedMinutes);
     if (!title || !subject || !/^\d{4}-\d{2}-\d{2}$/.test(date) || !['Low','Medium','High'].includes(priority) || !Number.isFinite(estimatedMinutes) || estimatedMinutes < 1) throw new Error('Provide a title, subject, valid date, priority, and positive estimated minutes.');
-    return { id: crypto.randomUUID(), title, subject, date, priority, estimatedMinutes: Math.round(estimatedMinutes), completed: false };
+    return { id: generateId(), title, subject, date, priority, estimatedMinutes: Math.round(estimatedMinutes), completed: false };
   }
   function addTask(input) { const task = normalizedTask(input); tasks.unshift(task); saveTasks(); render(); return task; }
   function completeTask(taskId) { const task = tasks.find((item) => item.id === taskId); if (!task) return null; task.completed = true; saveTasks(); render(); return task; }
