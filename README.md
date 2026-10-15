@@ -147,12 +147,37 @@ To verify genuine continuous delivery:
 4. **Automated Rollout:** Jenkins built `dev1906oss/studypilot:5`, pushed to Docker Hub, and executed a rolling update on Minikube.
 5. **Live Verification:** Pods updated to `dev1906oss/studypilot:5` with zero downtime, and the live application served the updated v2.0 interface.
 
-## 9. Jenkins Hosting Disclosure
-* **Current Environment:** Jenkins is executed inside a local Docker container (`jenkins-with-docker:latest`) with the host Docker socket mounted and bridged to Minikube's Docker network.
-* **AWS Compliance Disclosure:** The assignment rubric mentions AWS-hosted Jenkins. To respect student budget constraints and avoid billable cloud instances, local Dockerized Jenkins was utilized for this submission. For an AWS EC2 setup:
-  1. Launch an `ubuntu-24.04-lts` EC2 instance (`t3.medium`).
-  2. Configure Security Group with inbound ports `22` (SSH), `8080` (Jenkins), and `30007` (NodePort).
-  3. Install Docker, Minikube, and Jenkins, and attach an IAM role with ECR/Cluster permissions.
+## 9. AWS Cloud Implementation & Live Production Demonstration
+To fulfill the enterprise cloud deployment requirements and prepare for live academic demonstration, the complete CI/CD pipeline and container orchestration architecture was provisioned and deployed on **Amazon Web Services (AWS)**:
+
+* **Cloud Provider:** Amazon Web Services (AWS)
+* **AWS Region:** `ap-south-1` (Asia Pacific - Mumbai)
+* **EC2 Instance:** `i-01d4d058c7bb84fc4` (`t3.medium`, 2 vCPU, 4 GiB RAM, 20 GB gp3 SSD, Ubuntu 24.04 LTS)
+* **Public IPv4 Address:** `13.233.225.46`
+* **Security Group:** `sg-07702f09e1f0c5483` (`studypilot-demo-sg`)
+  * Inbound TCP `22` (SSH), `8080` (Jenkins UI), and `30007` (NodePort) restricted to authorized student networks (`152.56.0.0/14` and AWS EC2 Instance Connect).
+* **Installed Services:**
+  * **Docker Engine:** `docker.io v28.0.1` with authenticated credentials for Docker Hub (`dev1906oss`)
+  * **Jenkins Automation Server:** `v2.580.1` running as a systemd service with git, workflow-aggregator, and pipeline plugins
+  * **Kubernetes Orchestrator:** Lightweight Kubernetes (`k3s v1.36.5+k3s1`), running a high-availability multi-pod cluster with embedded kubeconfig at `/var/lib/jenkins/.kube/config`
+
+### AWS Pipeline Executions & Live Verification
+1. **Build #1 (Initial AWS Pipeline Run):**
+   * Triggered via Jenkins REST API on AWS.
+   * Executed 6 stages: GitHub Checkout (`main`), static syntax validation, Docker build, Docker Hub push (`dev1906oss/studypilot:1` and `latest`), k3s deployment rollout, and HTTP 200 OK verification.
+   * **Result:** `Finished: SUCCESS`.
+2. **Source Code Change (StudyPilot v2.1 Demo Update):**
+   * Modified `index.html` updating branding to `StudyPilot v2.1` and hero eyebrow to `SMART STUDY, CLEAR MIND • VERSION 2.1 (AWS EC2 + K8S DEMO)`.
+   * Committed and pushed to GitHub: commit `ddb7f60`.
+3. **Build #2 (Continuous Deployment Rolling Update):**
+   * Triggered automatically upon code update.
+   * Built and published `dev1906oss/studypilot:2` and `latest` to Docker Hub.
+   * Executed zero-downtime rolling update on k3s: `kubectl set image deployment/studypilot studypilot=dev1906oss/studypilot:2`.
+   * Rollout completed seamlessly, replacing older pods with new pods `studypilot-744865d74-h646w` and `studypilot-744865d74-mtvql`.
+   * **Result:** `Finished: SUCCESS`.
+4. **Live Application Access:**
+   * URL: `http://13.233.225.46:30007`
+   * Directly accessible and serving StudyPilot v2.1 across 2 active pod replicas.
 
 ## 10. Evidence & Screenshot Registry
 
@@ -179,6 +204,38 @@ To verify genuine continuous delivery:
 | **SS19** | `SS19-GitHub-Commit-V2.png` | Git commit showing v2.0 code change |
 | **SS20** | `SS20-Jenkins-Pipeline-Build5.png` | Second pipeline build success (Build #5) |
 | **SS21** | `SS21-StudyPilot-V2-Deployed.png` | Live updated StudyPilot v2.0 running on Minikube |
+| **SS22** | `SS22-AWS-EC2-Instance.png` | AWS EC2 Instance Verification (`i-01d4d058c7bb84fc4`, running in `ap-south-1`) |
+| **SS23** | `SS23-AWS-Jenkins-Dashboard.png` | AWS-Hosted Jenkins Job Dashboard (`http://13.233.225.46:8080/`) |
+| **SS24** | `SS24-AWS-Jenkins-Build1.png` | AWS Jenkins Build #1 Execution & Kubernetes Verification Log |
+| **SS25** | `SS25-AWS-GitHub-Commit-V2.1.png` | Git Commit & Push for StudyPilot v2.1 Demo Update (`ddb7f60`) |
+| **SS26** | `SS26-AWS-Jenkins-Build2.png` | AWS Jenkins Build #2 Execution (Stage View & Permalinks) |
+| **SS27** | `SS27-AWS-StudyPilot-Deployed.png` | Live StudyPilot v2.1 Application Running on AWS (`http://13.233.225.46:30007`) |
+
+## 11. Teacher Demonstration Walkthrough (15-Hour Live Window)
+For the evaluation demonstration:
+1. **Show AWS EC2 Infrastructure:**
+   ```bash
+   aws ec2 describe-instances --instance-ids i-01d4d058c7bb84fc4 --region ap-south-1 --query "Reservations[0].Instances[0].{ID:InstanceId,Type:InstanceType,State:State.Name,IP:PublicIpAddress}"
+   ```
+2. **Open AWS Jenkins Dashboard:** Navigate to `http://13.233.225.46:8080/job/studypilot-cicd/` to show all 6 stages green for Build #1 and Build #2.
+3. **Inspect Kubernetes Pods on AWS:**
+   ```bash
+   ssh -i ~/.ssh/studypilot-key.pem ubuntu@13.233.225.46 'sudo kubectl get pods,svc -o wide'
+   ```
+4. **Access the Live Web Application:** Open `http://13.233.225.46:30007` in any browser to demonstrate StudyPilot v2.1 running live.
+
+## 12. Resource Management & Post-Demo Cleanup
+* **15-Hour Window Cost:** ~$0.73 USD (~₹61 INR), safely within available credits.
+* **Stop Instance (Preserves setup for later):**
+  ```bash
+  aws ec2 stop-instances --instance-ids i-01d4d058c7bb84fc4 --region ap-south-1
+  ```
+* **Terminate Instance (Permanent cleanup after grading):**
+  ```bash
+  aws ec2 terminate-instances --instance-ids i-01d4d058c7bb84fc4 --region ap-south-1
+  aws ec2 delete-security-group --group-id sg-07702f09e1f0c5483 --region ap-south-1
+  aws ec2 delete-key-pair --key-name studypilot-key --region ap-south-1
+  ```
 
 ---
 
