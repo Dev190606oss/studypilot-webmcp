@@ -14,8 +14,8 @@ spec:
     spec:
       containers:
         - name: studypilot
-          image: studypilot:latest
-          imagePullPolicy: IfNotPresent
+          image: dev1906oss/studypilot:latest
+          imagePullPolicy: Always
           ports:
             - containerPort: 80
           readinessProbe:
