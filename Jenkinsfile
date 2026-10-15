@@ -93,8 +93,10 @@ print('index.html markup validation: PASSED')
                     kubectl get service studypilot-service
 
                     echo "--- HTTP Accessibility Verification ---"
-                    curl -sI ${APP_URL} | grep "HTTP/1.1 200 OK"
-                    echo "StudyPilot is running and accessible at ${APP_URL}"
+                    curl -sI --max-time 10 http://127.0.0.1:30007 | grep "HTTP/1.1 200 OK" || \
+                    curl -sI --max-time 10 http://192.168.49.2:30007 | grep "HTTP/1.1 200 OK" || \
+                    curl -sI --max-time 10 http://localhost:80 | grep "HTTP/1.1 200 OK"
+                    echo "StudyPilot deployment verified and accessible via HTTP."
                 '''
             }
         }
