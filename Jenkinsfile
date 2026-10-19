@@ -62,9 +62,9 @@ print('index.html markup validation: PASSED')
             }
         }
 
-        stage('Minikube Deployment') {
+        stage('Kubernetes Deployment') {
             steps {
-                echo '=== Stage 5: Deploy to Minikube Cluster ==='
+                echo '=== Stage 5: Deploy to Kubernetes Cluster ==='
                 sh '''
                     echo "Applying Kubernetes Deployment and Service manifests..."
                     kubectl apply -f k8s/deployment.yaml
